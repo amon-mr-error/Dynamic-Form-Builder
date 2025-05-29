@@ -1,121 +1,95 @@
-const { ChatMistralAI } = require('@langchain/mistralai');
-const { ChatPromptTemplate } = require('@langchain/core/prompts');
-const { StringOutputParser } = require('@langchain/core/output_parsers');
+// aiService.js
+const { Mistral } = require('@mistralai/mistralai');
 const Response = require('../models/Response');
 
-// Initialize Mistral AI
-const mistral = new ChatMistralAI({
-  apiKey: process.env.MISTRAL_API_KEY,
-  modelName: process.env.MISTRAL_MODEL || 'mistral-medium',
-  temperature: 0.3,
-});
+const mistral = new Mistral({ apiKey: process.env.MISTRAL_API_KEY });
 
-// Prompt templates
-const formPrompt = ChatPromptTemplate.fromTemplate(
-  `You are an expert form builder AI. Based on the following description, create a comprehensive form structure in JSON format.
+const model = 'mistral-large-2411';
 
-Description: {prompt}
+const chatCompletion = async (messages) => {
+  const res = await mistral.chat.complete({
+    model,
+    messages,
+  });
+  return res.choices[0].message.content;
+};
+
+const generateForm = async (prompt) => {
+  try {
+    const formPrompt = `You are an expert form builder AI. Based on the following description, create a comprehensive form structure in JSON format.
+
+Description: ${prompt}
 
 Return ONLY a valid JSON object with the following structure:
-{{
+{
   "title": "Form Title",
   "description": "Form Description",
   "elements": [
-    {{
+    {
       "id": "unique_id",
       "type": "text|textarea|number|email|select|radio|checkbox|date|time|file|rating",
       "label": "Field Label",
       "placeholder": "Placeholder text",
-      "validation": {{
+      "validation": {
         "required": true/false,
         "minLength": number,
         "maxLength": number,
         "pattern": "regex pattern"
-      }},
+      },
       "options": [
-        {{ "label": "Option 1", "value": "option1" }}
+        { "label": "Option 1", "value": "option1" }
       ]
-    }}
+    }
   ],
-  "settings": {{
+  "settings": {
     "submitButtonText": "Submit",
     "successMessage": "Thank you for your submission"
-  }}
-}}`
-);
+  }
+}`;
 
-const analysisPrompt = ChatPromptTemplate.fromTemplate(
-  `Analyze the following form response and provide insights:
+    const response = await chatCompletion([{ role: 'user', content: formPrompt }]);
+    // Remove Markdown code block markers if present
+    const cleaned = response.replace(/```json|```/g, '').trim();
+    // console.log('AI cleaned response:', cleaned);
+    const parsed = JSON.parse(cleaned);
 
-Form Title: {formTitle}
-Response Data: {responseData}
+    parsed.elements = parsed.elements.map((el, i) => ({
+      ...el,
+      id: el.id || `field_${Date.now()}_${i}`,
+    }));
+
+    return parsed;
+  } catch (error) {
+    console.error('Form generation error:', error);
+    throw new Error('Failed to generate form');
+  }
+};
+
+
+const analyzeResponse = async (response, form) => {
+  try {
+    const responseData = response.responses.map((r) => {
+      const field = form.elements.find((f) => f.id === r.elementId);
+      return { field: field?.label || r.elementId, value: r.value };
+    });
+
+    const prompt = `Analyze the following form response and provide insights:
+
+Form Title: ${form.title}
+Response Data: ${JSON.stringify(responseData)}
 
 Provide analysis in the following JSON format:
-{{
+{
   "sentiment": "positive|neutral|negative",
   "keywords": ["keyword1", "keyword2"],
   "summary": "Brief summary of the response",
   "flags": ["flag1", "flag2"]
-}}`
-);
+}`;
 
-const insightsPrompt = ChatPromptTemplate.fromTemplate(
-  `Based on the following form responses data, provide actionable insights:
-
-Form Information: {formInfo}
-Response Summary: {responseSummary}
-
-Provide insights in JSON format:
-{{
-  "overallTrends": "Description of overall trends",
-  "recommendations": ["recommendation1", "recommendation2"],
-  "patterns": ["pattern1", "pattern2"],
-  "improvementSuggestions": ["suggestion1", "suggestion2"]
-}}`
-);
-
-const outputParser = new StringOutputParser();
-
-// ---------- Core Functions -----------
-
-const generateForm = async (prompt) => {
-  try {
-    const chain = formPrompt.pipe(mistral).pipe(outputParser);
-    const result = await chain.invoke({ prompt });
-    const parsedResult = JSON.parse(result);
-
-    // Add unique IDs if missing
-    parsedResult.elements = parsedResult.elements.map((element, index) => ({
-      ...element,
-      id: element.id || `field_${Date.now()}_${index}`,
-    }));
-
-    return parsedResult;
-  } catch (error) {
-    console.error('AI form generation error:', error);
-    throw new Error('Failed to generate form with AI');
-  }
-};
-
-const analyzeResponse = async (response, form) => {
-  try {
-    const responseData = response.responses.map(resp => {
-      const element = form.elements.find(el => el.id === resp.elementId);
-      return {
-        field: element ? element.label : resp.elementId,
-        value: resp.value,
-      };
-    });
-
-    const chain = analysisPrompt.pipe(mistral).pipe(outputParser);
-    const result = await chain.invoke({
-      formTitle: form.title,
-      responseData: JSON.stringify(responseData),
-    });
-
+    const result = await chatCompletion([{ role: 'user', content: prompt }]);
     return JSON.parse(result);
   } catch (error) {
-    console.error('AI response analysis error:', error);
+    console.error('Response analysis error:', error);
     return {
       sentiment: 'neutral',
       keywords: [],
@@ -139,12 +113,11 @@ const generateInsights = async (formId) => {
     }
 
     const form = responses[0].form;
-
-    const responseSummary = {
+    const summary = {
       totalResponses: responses.length,
       completionRate: responses.filter(r => r.status === 'complete').length / responses.length,
       averageTime: responses.reduce((acc, r) => acc + (r.metadata?.timeSpent || 0), 0) / responses.length,
-      topKeywords: [], // Placeholder
+      topKeywords: [],
     };
 
     const formInfo = {
@@ -153,15 +126,23 @@ const generateInsights = async (formId) => {
       elementTypes: [...new Set(form.elements.map(el => el.type))],
     };
 
-    const chain = insightsPrompt.pipe(mistral).pipe(outputParser);
-    const result = await chain.invoke({
-      formInfo: JSON.stringify(formInfo),
-      responseSummary: JSON.stringify(responseSummary),
-    });
+    const prompt = `Based on the following form responses data, provide actionable insights:
 
+Form Information: ${JSON.stringify(formInfo)}
+Response Summary: ${JSON.stringify(summary)}
+
+Provide insights in JSON format:
+{
+  "overallTrends": "Description of overall trends",
+  "recommendations": ["recommendation1", "recommendation2"],
+  "patterns": ["pattern1", "pattern2"],
+  "improvementSuggestions": ["suggestion1", "suggestion2"]
+}`;
+
+    const result = await chatCompletion([{ role: 'user', content: prompt }]);
     return JSON.parse(result);
   } catch (error) {
-    console.error('AI insights generation error:', error);
+    console.error('Insight generation error:', error);
     return {
       overallTrends: 'Unable to generate insights at this time',
       recommendations: [],
@@ -182,31 +163,27 @@ const optimizeForm = async (formId) => {
       };
     }
 
-    const fieldAnalysis = {};
-    responses.forEach(response => {
-      response.responses.forEach(resp => {
-        if (!fieldAnalysis[resp.elementId]) {
-          fieldAnalysis[resp.elementId] = { total: 0, filled: 0, errors: 0 };
-        }
-        fieldAnalysis[resp.elementId].total++;
-        if (resp.value && resp.value !== '') {
-          fieldAnalysis[resp.elementId].filled++;
-        }
+    const stats = {};
+    responses.forEach(res => {
+      res.responses.forEach(r => {
+        stats[r.elementId] = stats[r.elementId] || { total: 0, filled: 0 };
+        stats[r.elementId].total++;
+        if (r.value && r.value !== '') stats[r.elementId].filled++;
       });
     });
 
-    const suggestions = [];
-    Object.entries(fieldAnalysis).forEach(([fieldId, stats]) => {
-      const fillRate = stats.filled / stats.total;
-      if (fillRate < 0.5) {
-        suggestions.push(`Field ${fieldId} has low completion rate (${Math.round(fillRate * 100)}%) - consider making it optional or improving the label`);
+    const suggestions = Object.entries(stats).map(([id, s]) => {
+      const rate = s.filled / s.total;
+      if (rate < 0.5) {
+        return `Field ${id} has low fill rate (${Math.round(rate * 100)}%). Consider rewording or making it optional.`;
       }
-    });
+      return null;
+    }).filter(Boolean);
 
     return {
       message: 'Form optimization analysis completed',
       suggestions,
-      fieldAnalysis,
+      fieldAnalysis: stats,
     };
   } catch (error) {
     console.error('Form optimization error:', error);
@@ -216,40 +193,22 @@ const optimizeForm = async (formId) => {
 
 const suggestValidations = async (elements) => {
   try {
-    const validationSuggestions = elements.map(element => {
-      const suggestions = [];
+    const suggestions = elements.map(el => {
+      const s = [];
+      const label = el.label.toLowerCase();
 
-      switch (element.type) {
-        case 'email':
-          suggestions.push('Email format validation is automatically applied');
-          break;
-        case 'text':
-          if (element.label.toLowerCase().includes('name')) {
-            suggestions.push('Consider adding minimum length validation (2-3 characters)');
-          }
-          if (element.label.toLowerCase().includes('phone')) {
-            suggestions.push('Consider adding phone number format validation');
-          }
-          break;
-        case 'textarea':
-          suggestions.push('Consider adding character limits for better UX');
-          break;
-        case 'number':
-          suggestions.push('Consider adding min/max value constraints');
-          break;
-        default:
-          break;
-      }
+      if (el.type === 'email') s.push('Add email format validation');
+      if (el.type === 'text' && label.includes('name')) s.push('Minimum length (2–3 characters)');
+      if (el.type === 'text' && label.includes('phone')) s.push('Phone format validation');
+      if (el.type === 'textarea') s.push('Character limit for better UX');
+      if (el.type === 'number') s.push('Min/Max value constraints');
 
-      return {
-        elementId: element.id,
-        suggestions,
-      };
+      return { elementId: el.id, suggestions: s };
     });
 
-    return validationSuggestions.filter(item => item.suggestions.length > 0);
+    return suggestions.filter(s => s.suggestions.length);
   } catch (error) {
-    console.error('Validation suggestions error:', error);
+    console.error('Validation suggestion error:', error);
     return [];
   }
 };
