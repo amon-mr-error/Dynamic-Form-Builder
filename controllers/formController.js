@@ -37,9 +37,22 @@ const generateFormWithAI = async (req, res) => {
       return res.status(400).json({ message: 'Prompt is required' });
     }
 
+    // Generate form structure using AI
     const generatedForm = await aiService.generateForm(prompt);
 
-    res.json(generatedForm);
+    // Save the generated form to the database
+    const form = await Form.create({
+      title: generatedForm.title,
+      description: generatedForm.description,
+      user: req.user._id,
+      elements: generatedForm.elements || [],
+      settings: generatedForm.settings || {},
+      status: 'draft',
+      aiPrompt: prompt,
+      aiGenerated: true,
+    });
+
+    res.status(201).json(form);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

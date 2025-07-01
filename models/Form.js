@@ -42,6 +42,7 @@ const FormSchema = new mongoose.Schema(
             'divider',
             'rating',
             'signature',
+            'section',
           ],
         },
         label: {
