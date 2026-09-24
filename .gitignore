@@ -6,6 +6,7 @@
 # env files
 **/.env
 **/.env.*
+!**/.env.example
 
 # builds / caches
 **/build/
@@ -23,3 +24,9 @@ yarn-error.log*
 
 # OS files
 .DS_Store
+
+# Documentation
+docs/
+
+# Mobile application (separate repo)
+FormCrafter/

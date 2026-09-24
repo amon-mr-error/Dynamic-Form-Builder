@@ -1,70 +1,72 @@
-# Getting Started with Create React App
+# Dynamic Form Builder - Frontend Client
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+This directory contains the React Single Page Application (SPA) for the Dynamic Form Builder platform.
 
-## Available Scripts
+## Overview
 
-In the project directory, you can run:
+The web client provides an intuitive interface for:
+- Generating dynamic forms from natural language prompts using Mistral AI.
+- Live previewing generated forms with multiple question types (text, email, select, radio, checkbox, etc.).
+- Submitting form responses.
+- Viewing submitted responses and analytics on the user dashboard.
+- User authentication (registration and login).
 
-### `npm start`
+## Tech Stack
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+- **Framework:** React 19
+- **Routing:** React Router v7
+- **Styling:** Tailwind CSS & PostCSS
+- **Icons:** Lucide React
+- **HTTP Client:** Axios
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+## Setup & Running
 
-### `npm test`
+1. **Install dependencies:**
+   ```bash
+   npm install
+   ```
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+2. **Environment Variables:**
+   Copy `.env.example` to `.env`:
+   ```bash
+   cp .env.example .env
+   ```
+   Set `REACT_APP_URL` to your running backend API (default: `http://localhost:5000`):
+   ```env
+   REACT_APP_URL=http://localhost:5000
+   ```
 
-### `npm run build`
+3. **Start Development Server:**
+   ```bash
+   npm start
+   ```
+   The application will be accessible at [http://localhost:3000](http://localhost:3000).
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+4. **Production Build:**
+   ```bash
+   npm run build
+   ```
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+## Directory Structure
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
-
-### `npm run eject`
-
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
-
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
-
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
-
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
-
-## Learn More
-
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
-
-To learn React, check out the [React documentation](https://reactjs.org/).
-
-### Code Splitting
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
-
-### Analyzing the Bundle Size
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
-
-### Making a Progressive Web App
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+```
+frontend/
+├── public/                 # Static assets & index.html
+├── src/
+│   ├── components/         # Reusable UI components
+│   │   └── FormPreview.js  # Dynamic form schema previewer
+│   ├── pages/              # Route view pages
+│   │   ├── DashboardPage.js
+│   │   ├── FillFormPage.js
+│   │   ├── FormResponsesPage.js
+│   │   ├── GenerateFormPage.js
+│   │   ├── LoginPage.js
+│   │   └── RegisterPage.js
+│   ├── utils/              # Helper utilities
+│   │   └── formUtils.js
+│   ├── App.js              # Application routes & layout
+│   ├── index.js            # React entrypoint
+│   └── index.css           # Global Tailwind CSS styles
+├── package.json
+└── tailwind.config.js
+```

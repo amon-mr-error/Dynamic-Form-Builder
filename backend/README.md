@@ -2,12 +2,13 @@
 
 This repository contains the backend API service for the Dynamic Form Builder, an AI-powered form generation and management platform. The backend is built using Node.js, Express, MongoDB, and integrates with Mistral AI via Langchain for dynamic form generation.
 
-## Related Repositories
+## Client Applications
 
-This backend acts as the central API for multiple client applications. The related frontend repositories can be found here:
+This backend acts as the central API for the client applications:
 
-- **React Web Application:** [AI-Form-Maker](https://github.com/amon-mr-error/AI-Form-Maker)
+- **React Web Application:** Located in the [`/frontend`](../frontend) directory within this monorepo.
 - **React Native Expo Application:** [FormCraft-APK](https://github.com/amon-mr-error/FormCraft-APK)
+
 
 ## Tech Stack
 
