@@ -1,0 +1,25 @@
+# Root monorepo ignore rules
+
+# dependencies
+**/node_modules/
+
+# env files
+**/.env
+**/.env.*
+
+# builds / caches
+**/build/
+**/dist/
+**/.expo/
+**/.turbo/
+**/.cache/
+**/coverage/
+
+# logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS files
+.DS_Store
